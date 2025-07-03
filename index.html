@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultimate Tic-Tac-Toe</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        .animate-pulse-slow {
+            animation: pulse 2s infinite;
+        }
+        .cell {
+            transition: all 0.3s ease;
+        }
+        .cell:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+        }
+        .winning-cell {
+            background-color: rgba(74, 222, 128, 0.3);
+            box-shadow: 0 0 20px rgba(74, 222, 128, 0.5);
+        }
+        .modal {
+            transition: all 0.3s ease-out;
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        .modal.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center p-4">
+    <div class="max-w-4xl w-full">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent mb-2">
+                Ultimate Tic-Tac-Toe
+            </h1>
+            <p class="text-gray-400">The classic game with a modern twist</p>
+        </header>
+
+        <div class="flex flex-col md:flex-row gap-8 items-center justify-center">
+            <!-- Game Controls -->
+            <div class="w-full md:w-1/3 space-y-6">
+                <div class="bg-gray-800 rounded-xl p-6 shadow-lg">
+                    <h2 class="text-xl font-semibold mb-4 text-center">Game Status</h2>
+                    
+                    <div class="flex justify-between items-center mb-6">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-pink-500">Player X</div>
+                            <div class="text-3xl font-bold" id="score-x">0</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-blue-500">Player O</div>
+                            <div class="text-3xl font-bold" id="score-o">0</div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center py-3 px-4 bg-gray-700 rounded-lg mb-4">
+                        <div class="text-lg font-medium">Current Turn:</div>
+                        <div id="current-player" class="text-2xl font-bold text-pink-500">X</div>
+                    </div>
+                    
+                    <div class="flex flex-col space-y-3">
+                        <button id="reset-btn" class="bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-lg transition flex items-center justify-center gap-2">
+                            <i class="fas fa-redo"></i> Reset Game
+                        </button>
+                        <button id="ai-toggle" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition flex items-center justify-center gap-2">
+                            <i class="fas fa-robot"></i> Play vs AI
+                        </button>
+                        <button id="theme-toggle" class="bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-lg transition flex items-center justify-center gap-2">
+                            <i class="fas fa-moon"></i> Toggle Theme
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="bg-gray-800 rounded-xl p-6 shadow-lg hidden md:block">
+                    <h2 class="text-xl font-semibold mb-4 text-center">How to Play</h2>
+                    <ul class="space-y-2 text-gray-300">
+                        <li class="flex items-start gap-2">
+                            <i class="fas fa-check text-green-400 mt-1"></i>
+                            <span>Players take turns marking a square with X or O</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i class="fas fa-check text-green-400 mt-1"></i>
+                            <span>First to get 3 in a row (horizontally, vertically, or diagonally) wins</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i class="fas fa-check text-green-400 mt-1"></i>
+                            <span>If all squares are filled without a winner, it's a draw</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Game Board -->
+            <div class="w-full md:w-2/3">
+                <div class="bg-gray-800 rounded-xl p-4 shadow-lg">
+                    <div class="grid grid-cols-3 gap-3 md:gap-4 aspect-square">
+                        <!-- Cells will be generated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Winner Modal -->
+    <div id="winner-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50 opacity-0 pointer-events-none modal">
+        <div class="bg-gray-800 rounded-xl p-8 max-w-md w-full shadow-2xl text-center">
+            <h2 id="winner-text" class="text-3xl font-bold mb-4 bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">Player X Wins!</h2>
+            <p id="winner-subtext" class="text-gray-300 mb-6">Congratulations on your victory!</p>
+            <div class="flex flex-col space-y-3">
+                <button id="play-again-btn" class="bg-purple-600 hover:bg-purple-700 text-white py-3 px-6 rounded-lg transition font-medium">
+                    Play Again
+                </button>
+                <button id="close-modal-btn" class="bg-gray-600 hover:bg-gray-700 text-white py-3 px-6 rounded-lg transition font-medium">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Game state
+            let board = ['', '', '', '', '', '', '', '', ''];
+            let currentPlayer = 'X';
+            let gameActive = true;
+            let scores = { X: 0, O: 0 };
+            let vsAI = false;
+            let darkMode = true;
+            
+            // DOM elements
+            const boardElement = document.querySelector('.grid');
+            const currentPlayerElement = document.getElementById('current-player');
+            const scoreXElement = document.getElementById('score-x');
+            const scoreOElement = document.getElementById('score-o');
+            const resetBtn = document.getElementById('reset-btn');
+            const aiToggleBtn = document.getElementById('ai-toggle');
+            const themeToggleBtn = document.getElementById('theme-toggle');
+            const winnerModal = document.getElementById('winner-modal');
+            const winnerText = document.getElementById('winner-text');
+            const winnerSubtext = document.getElementById('winner-subtext');
+            const playAgainBtn = document.getElementById('play-again-btn');
+            const closeModalBtn = document.getElementById('close-modal-btn');
+            
+            // Initialize the board
+            function initializeBoard() {
+                boardElement.innerHTML = '';
+                for (let i = 0; i < 9; i++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell bg-gray-700 rounded-lg flex items-center justify-center text-6xl md:text-8xl font-bold cursor-pointer hover:bg-gray-600 transition';
+                    cell.dataset.index = i;
+                    cell.addEventListener('click', () => handleCellClick(i));
+                    boardElement.appendChild(cell);
+                }
+            }
+            
+            // Handle cell click
+            function handleCellClick(index) {
+                if (!gameActive || board[index] !== '') return;
+                
+                // Human move
+                makeMove(index, currentPlayer);
+                
+                if (vsAI && gameActive && currentPlayer === 'O') {
+                    // AI move
+                    setTimeout(() => {
+                        const bestMove = findBestMove();
+                        makeMove(bestMove, 'O');
+                    }, 500);
+                }
+            }
+            
+            // Make a move
+            function makeMove(index, player) {
+                board[index] = player;
+                const cell = boardElement.children[index];
+                cell.textContent = player;
+                cell.classList.add(player === 'X' ? 'text-pink-500' : 'text-blue-500');
+                cell.classList.remove('hover:bg-gray-600');
+                
+                // Check for winner or draw
+                const winningCombination = checkWinner();
+                if (winningCombination) {
+                    handleWin(winningCombination, player);
+                } else if (isBoardFull()) {
+                    handleDraw();
+                } else {
+                    // Switch player
+                    currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+                    updateCurrentPlayerDisplay();
+                }
+            }
+            
+            // Check for winner
+            function checkWinner() {
+                const winningCombinations = [
+                    [0, 1, 2], [3, 4, 5], [6, 7, 8], // rows
+                    [0, 3, 6], [1, 4, 7], [2, 5, 8], // columns
+                    [0, 4, 8], [2, 4, 6]             // diagonals
+                ];
+                
+                for (const combination of winningCombinations) {
+                    const [a, b, c] = combination;
+                    if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+                        return combination;
+                    }
+                }
+                return null;
+            }
+            
+            // Check if board is full
+            function isBoardFull() {
+                return board.every(cell => cell !== '');
+            }
+            
+            // Handle win
+            function handleWin(winningCombination, player) {
+                gameActive = false;
+                scores[player]++;
+                updateScores();
+                
+                // Highlight winning cells
+                winningCombination.forEach(index => {
+                    boardElement.children[index].classList.add('winning-cell');
+                });
+                
+                // Show winner modal
+                winnerText.textContent = player === 'X' ? 'Player X Wins!' : 'Player O Wins!';
+                winnerSubtext.textContent = player === 'X' ? 'Excellent strategy!' : 'Great moves!';
+                if (player === 'O' && vsAI) {
+                    winnerSubtext.textContent = 'The AI outsmarted you!';
+                }
+                
+                showModal();
+            }
+            
+            // Handle draw
+            function handleDraw() {
+                gameActive = false;
+                winnerText.textContent = "It's a Draw!";
+                winnerSubtext.textContent = "No winner this time. Try again!";
+                showModal();
+            }
+            
+            // Reset game
+            function resetGame() {
+                board = ['', '', '', '', '', '', '', '', ''];
+                currentPlayer = 'X';
+                gameActive = true;
+                initializeBoard();
+                updateCurrentPlayerDisplay();
+                hideModal();
+            }
+            
+            // Update current player display
+            function updateCurrentPlayerDisplay() {
+                currentPlayerElement.textContent = currentPlayer;
+                currentPlayerElement.className = currentPlayer === 'X' ? 'text-2xl font-bold text-pink-500' : 'text-2xl font-bold text-blue-500';
+            }
+            
+            // Update scores
+            function updateScores() {
+                scoreXElement.textContent = scores.X;
+                scoreOElement.textContent = scores.O;
+            }
+            
+            // Show modal
+            function showModal() {
+                winnerModal.classList.remove('pointer-events-none');
+                setTimeout(() => {
+                    winnerModal.classList.add('show');
+                }, 100);
+            }
+            
+            // Hide modal
+            function hideModal() {
+                winnerModal.classList.remove('show');
+                setTimeout(() => {
+                    winnerModal.classList.add('pointer-events-none');
+                }, 300);
+                
+                // Remove winning cell highlights
+                document.querySelectorAll('.winning-cell').forEach(cell => {
+                    cell.classList.remove('winning-cell');
+                });
+            }
+            
+            // AI logic - Minimax algorithm
+            function findBestMove() {
+                // Simple AI: first look for winning move, then blocking move, then random
+                
+                // Check for winning move
+                for (let i = 0; i < 9; i++) {
+                    if (board[i] === '') {
+                        board[i] = 'O';
+                        if (checkWinner()) {
+                            board[i] = '';
+                            return i;
+                        }
+                        board[i] = '';
+                    }
+                }
+                
+                // Check for blocking move
+                for (let i = 0; i < 9; i++) {
+                    if (board[i] === '') {
+                        board[i] = 'X';
+                        if (checkWinner()) {
+                            board[i] = '';
+                            return i;
+                        }
+                        board[i] = '';
+                    }
+                }
+                
+                // Try to take center
+                if (board[4] === '') return 4;
+                
+                // Try to take a corner
+                const corners = [0, 2, 6, 8];
+                const availableCorners = corners.filter(i => board[i] === '');
+                if (availableCorners.length > 0) {
+                    return availableCorners[Math.floor(Math.random() * availableCorners.length)];
+                }
+                
+                // Take any available edge
+                const edges = [1, 3, 5, 7];
+                const availableEdges = edges.filter(i => board[i] === '');
+                if (availableEdges.length > 0) {
+                    return availableEdges[Math.floor(Math.random() * availableEdges.length)];
+                }
+                
+                // Fallback (shouldn't happen)
+                return board.findIndex(cell => cell === '');
+            }
+            
+            // Toggle AI opponent
+            function toggleAI() {
+                vsAI = !vsAI;
+                aiToggleBtn.innerHTML = vsAI 
+                    ? '<i class="fas fa-user"></i> Play vs Human' 
+                    : '<i class="fas fa-robot"></i> Play vs AI';
+                aiToggleBtn.classList.toggle('bg-blue-600', !vsAI);
+                aiToggleBtn.classList.toggle('bg-green-600', vsAI);
+                aiToggleBtn.classList.toggle('hover:bg-blue-700', !vsAI);
+                aiToggleBtn.classList.toggle('hover:bg-green-700', vsAI);
+                resetGame();
+            }
+            
+            // Toggle theme
+            function toggleTheme() {
+                darkMode = !darkMode;
+                if (darkMode) {
+                    document.body.classList.add('bg-gray-900', 'text-white');
+                    document.body.classList.remove('bg-gray-100', 'text-gray-900');
+                    themeToggleBtn.innerHTML = '<i class="fas fa-sun"></i> Light Mode';
+                } else {
+                    document.body.classList.remove('bg-gray-900', 'text-white');
+                    document.body.classList.add('bg-gray-100', 'text-gray-900');
+                    themeToggleBtn.innerHTML = '<i class="fas fa-moon"></i> Dark Mode';
+                }
+            }
+            
+            // Event listeners
+            resetBtn.addEventListener('click', resetGame);
+            aiToggleBtn.addEventListener('click', toggleAI);
+            themeToggleBtn.addEventListener('click', toggleTheme);
+            playAgainBtn.addEventListener('click', resetGame);
+            closeModalBtn.addEventListener('click', hideModal);
+            
+            // Initialize game
+            initializeBoard();
+            updateCurrentPlayerDisplay();
+            
+            // Easter egg
+            console.log('%cLooking for secrets?', 'color: #8b5cf6; font-size: 18px; font-weight: bold;');
+            console.log('%cTry clicking the title!', 'color: #ec4899; font-size: 14px;');
+            
+            // Title click effect
+            const title = document.querySelector('h1');
+            title.addEventListener('click', () => {
+                title.classList.add('animate-pulse-slow');
+                setTimeout(() => {
+                    title.classList.remove('animate-pulse-slow');
+                }, 2000);
+            });
+        });
+    </script>
+</body>
+</html>
